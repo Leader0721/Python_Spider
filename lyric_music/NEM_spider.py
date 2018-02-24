@@ -4,6 +4,7 @@
 # @Update: 2018-01-21
 
 '''
+http://blog.csdn.net/And_w/article/details/72082034
 本项目需要用到的网易云音乐 api
 参考 https://github.com/darknessomi/musicbox/blob/master/NEMbox/api.py
 '''
