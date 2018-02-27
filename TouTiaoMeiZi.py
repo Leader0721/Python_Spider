@@ -1,9 +1,7 @@
-# coding:utf-8
 import re
 import json
 import time
 import random
-import sys
 
 from pathlib import Path
 from urllib import parse
@@ -16,7 +14,6 @@ from socket import timeout as socket_timeout
 from bs4 import BeautifulSoup
 
 
-# https://www.jianshu.com/p/d67b1d4b99ad
 def _get_timestamp():
     """
     向 http://www.toutiao.com/search_content/ 发送的请求的参数包含一个时间戳，
@@ -71,19 +68,19 @@ def get_photo_urls(req, timeout=10):
         # 这里 decode 默认为 utf-8 编码，但返回的内容中含有部分非 utf-8 的内容，会导致解码失败
         # 所以我们使用 ignore 忽略这部分内容
         soup = BeautifulSoup(res.read().decode(errors='ignore'), 'html.parser')
-        article_main = soup.find('div', id='article-main')
-
-        if not article_main:
+        article_title = soup.find('div')
+        article_content = soup.find('div', id='article-content')
+        if not article_title:
             print("无法定位到文章主体...")
             return
 
-        heading = article_main.h1.string
+        heading = article_title.h1.string
 
         if '街拍' not in heading:
             print("这不是街拍的文章！！！")
             return
 
-        img_list = [img.get('src') for img in article_main.find_all('img') if img.get('src')]
+        img_list = [img.get('src') for img in article_content.find_all('img') if img.get('src')]
         return heading, img_list
 
 
@@ -105,8 +102,7 @@ def save_photo(photo_url, save_dir, timeout=10):
 if __name__ == '__main__':
     ongoing = True
     offset = 0  # 请求的偏移量，每次累加 20
-    # root_dir = _create_dir('E:\jiepai')  # 保存图片的根目录
-    root_dir = _create_dir('./examples')  # 改为相当路径
+    root_dir = _create_dir('E:\jiepai')  # 保存图片的根目录
     request_headers = {
         'Referer': 'http://www.toutiao.com/search/?keyword=%E8%A1%97%E6%8B%8D',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36'
@@ -135,9 +131,13 @@ if __name__ == '__main__':
             # 请求文章时可能返回两个异常，一个是连接超时 socket_timeout，
             # 另一个是 HTTPError，例如页面不存在
             # 连接超时我们便休息一下，HTTPError 便直接跳过。
+            print("文章的地址" + a_url)
             try:
                 photo_req = request.Request(a_url, headers=request_headers)
                 photo_urls = get_photo_urls(photo_req)
+
+                # for photo_url in photo_urls:
+                #     print("photoUrl"+photo_url)
 
                 # 文章中没有图片？跳到下一篇文章
                 if photo_urls is None:
@@ -164,9 +164,6 @@ if __name__ == '__main__':
                 continue
             except error.HTTPError:
                 continue
-            except KeyboardInterrupt:  # CTRL+C 退出程序
-                print("你已经使用CTRL+C结束了程序。")
-                sys.exit()
 
         # 一次请求处理完毕，将偏移量加 20，继续获取新的 20 篇文章。
         offset += 20
